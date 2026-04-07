@@ -6,7 +6,7 @@ if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
 
-type DbSchema = { trends_signals: any[], product_opportunities: any[], sync_operations_log: any[], watchlists: any[], sources: any[] };
+type DbSchema = { trends_signals: any[], product_opportunities: any[], sync_operations_log: any[], watchlists: any[], sources: any[], alerts: any[], mobile_devices: any[] };
 
 let masterDb: Record<string, DbSchema> = {};
 
@@ -27,7 +27,7 @@ function verifyUserDb(username: string) {
      // All new tenants should clone the legacy master DB to get starting signals & opportunities
      let initialFile = fs.existsSync(userFile) ? userFile : (fs.existsSync(legacyFile) ? legacyFile : null);
      
-     let instance: DbSchema = { trends_signals: [], product_opportunities: [], sync_operations_log: [], watchlists: [], sources: [] };
+     let instance: DbSchema = { trends_signals: [], product_opportunities: [], sync_operations_log: [], watchlists: [], sources: [], alerts: [], mobile_devices: [] };
      if (initialFile) {
         try {
            const parsed = JSON.parse(fs.readFileSync(initialFile, 'utf-8'));
@@ -39,7 +39,9 @@ function verifyUserDb(username: string) {
                 product_opportunities: [...(parsed.product_opportunities || [])], 
                 sync_operations_log: [...(parsed.sync_operations_log || [])], 
                 watchlists: [...(parsed.watchlists || [])], 
-                sources: [...(parsed.sources || [])]
+                sources: [...(parsed.sources || [])],
+                alerts: [...(parsed.alerts || [])],
+                mobile_devices: [...(parsed.mobile_devices || [])]
               };
            }
         } catch(e) { }
@@ -47,6 +49,8 @@ function verifyUserDb(username: string) {
      
      if (!instance.watchlists) instance.watchlists = [];
      if (!instance.sources) instance.sources = [];
+     if (!instance.alerts) instance.alerts = [];
+     if (!instance.mobile_devices) instance.mobile_devices = [];
      
      masterDb[username] = instance;
    }
@@ -82,6 +86,12 @@ export const db = {
           if (params?.id) return data.sources.filter(s => s.opportunityId === params.id);
           return data.sources;
         }
+        if (sql.includes('alerts')) {
+          return data.alerts.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        }
+        if (sql.includes('mobile_devices')) {
+          return data.mobile_devices;
+        }
         return [];
       },
       get: (params?: any) => {
@@ -90,6 +100,9 @@ export const db = {
         
         if (sql.includes('product_opportunities')) {
           return data.product_opportunities.find(o => o.id === params.id || o.name === params.name);
+        }
+        if (sql.includes('mobile_devices')) {
+          return data.mobile_devices.find(m => m.username === params.username);
         }
         return null;
       },
@@ -131,7 +144,8 @@ export const db = {
                    product_name: params.productName,
                    brand_name: params.brandName,
                    description: params.description,
-                   image_url: params.image_url
+                   image_url: params.image_url,
+                   image_urls: params.imageUrls
                 });
                 persist(u);
              }
@@ -155,6 +169,16 @@ export const db = {
         }
         if (sql.includes('sync_operations_log')) {
              data.sync_operations_log.push(params);
+             persist(u);
+        }
+        if (sql.includes('INSERT') && sql.includes('alerts')) {
+             data.alerts.push(params);
+             persist(u);
+        }
+        if (sql.includes('INSERT OR REPLACE') && sql.includes('mobile_devices')) {
+             const exist = data.mobile_devices.findIndex(m => m.username === params.username);
+             if (exist !== -1) data.mobile_devices[exist] = { ...data.mobile_devices[exist], ...params };
+             else data.mobile_devices.push(params);
              persist(u);
         }
       }

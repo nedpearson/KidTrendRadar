@@ -18,6 +18,7 @@ export interface SourcingOption {
   marginEstimatePct: number;
   recommended: boolean;
   recommendationReason?: string;
+  imageUrls?: string[];
 }
 
 export class SourceFinderAgent {
@@ -138,7 +139,8 @@ export class SourceFinderAgent {
                               conf: { type: "number", description: "Confidence score that this place exists locally and authentically" },
                               margin: { type: "number", description: "An estimated retail margin % (e.g. 40)" },
                               priceDelta: { type: "number", description: "Multiplier representing wholesale cost vs MAP" },
-                              inventoryCount: { type: "number", description: "Estimated physical stock units currently on hand at this geographical location (integer)" }
+                              inventoryCount: { type: "number", description: "Estimated physical stock units currently on hand at this geographical location (integer)" },
+                              imageUrls: { type: "array", items: { type: "string" }, description: "Provide 4 authentic product image URLs." }
                            },
                            required: ["url", "name", "address", "phone", "type", "conf", "margin", "priceDelta", "inventoryCount"]
                         }
@@ -191,7 +193,13 @@ export class SourceFinderAgent {
              reliabilityScore: retailer.conf - idx,
              marginEstimatePct: retailer.margin,
              recommended: idx === 0,
-             recommendationReason: `AI organically identified direct Louisiana retail supplier via structural intelligence.`
+             recommendationReason: `AI organically identified direct Louisiana retail supplier via structural intelligence.`,
+             imageUrls: retailer.imageUrls || [
+                `https://picsum.photos/seed/${encodeURIComponent(retailer.name.replace(/ /g, ''))}1/800/800`,
+                `https://picsum.photos/seed/${encodeURIComponent(retailer.name.replace(/ /g, ''))}2/800/800`,
+                `https://picsum.photos/seed/${encodeURIComponent(retailer.name.replace(/ /g, ''))}3/800/800`,
+                `https://picsum.photos/seed/${encodeURIComponent(retailer.name.replace(/ /g, ''))}4/800/800`
+             ]
            });
         });
       } else {
@@ -199,6 +207,51 @@ export class SourceFinderAgent {
       }
     } catch(err: any) {
       console.error(`[Research Agent] Deep Online Search Encountered Critical Failure:`, err.message || err);
+      // Hardcode fail-safe mock fallback sources for demo/presentation purposes if API fails
+      sources.push({
+         id: 'fallback1',
+         opportunityId: opp.id,
+         vendorName: "OLLY-OLLY LOCAL (FALLBACK)",
+         vendorType: 'direct',
+         url: "https://www.olly-olly.com",
+         pricePerUnit: 29.99,
+         currency: "USD",
+         moq: 1,
+         leadTimeDays: 1,
+         shippingNotes: "14 Units On Hand. | 📍 Baton Rouge | 📞 N/A",
+         reliabilityScore: 90,
+         marginEstimatePct: 45,
+         recommended: true,
+         recommendationReason: "Simulated fallback retail supplier due to AI connection loss.",
+         imageUrls: [
+            '/demo-assets/demo_1.png',
+            '/demo-assets/demo_2.png',
+            '/demo-assets/demo_3.png',
+            '/demo-assets/demo_4.png'
+         ]
+      });
+      sources.push({
+         id: 'fallback2',
+         opportunityId: opp.id,
+         vendorName: "HIGHLANDSIDE (FALLBACK)",
+         vendorType: 'direct',
+         url: "https://www.shophighlandside.com",
+         pricePerUnit: 24.50,
+         currency: "USD",
+         moq: 1,
+         leadTimeDays: 2,
+         shippingNotes: "6 Units On Hand. | 📍 Baton Rouge | 📞 N/A",
+         reliabilityScore: 85,
+         marginEstimatePct: 35,
+         recommended: false,
+         recommendationReason: "Simulated fallback retail supplier.",
+         imageUrls: [
+            '/demo-assets/demo_3.png',
+            '/demo-assets/demo_1.png',
+            '/demo-assets/demo_4.png',
+            '/demo-assets/demo_2.png'
+         ]
+      });
     }
     
     // Evaluate best source and update the opportunity subscores

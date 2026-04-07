@@ -36,11 +36,15 @@ function App() {
   const [isGeneratingBrief, setIsGeneratingBrief] = useState(false);
   const [execBriefData, setExecBriefData] = useState<string | null>(null);
   const [campaignData, setCampaignData] = useState<{coverstar?: string, instagram?: string} | null>(null);
+  const [editedCoverstar, setEditedCoverstar] = useState<string>('');
+  const [editedInstagram, setEditedInstagram] = useState<string>('');
+  const [localMediaUrl, setLocalMediaUrl] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([{ role: 'system', content: 'KidTrend advisory online. I am actively analyzing your database. How can I map inventory for you today?' }]);
   const [chatInput, setChatInput] = useState('');
   const [isScraping, setIsScraping] = useState(false);
   const [_notifications, _setNotifications] = useState<any[]>([]);
   const [readNotifications, _setReadNotifications] = useState<string[]>([]);
+  const [alerts, setAlerts] = useState<any[]>([]);
   const [timeFilter, setTimeFilter] = useState<'all_time'|'past_2_weeks'|'past_month'|'upcoming'>('all_time');
   
   const API_BASE = `http://${window.location.hostname}:4000`;
@@ -102,6 +106,11 @@ function App() {
     fetch(`${API_BASE}/api/watchlists`, { headers: authHeaders })
       .then(res => res.json())
       .then(data => { if (Array.isArray(data)) setWatchlists(data); })
+      .catch(console.error);
+      
+    fetch(`${API_BASE}/api/alerts`, { headers: authHeaders })
+      .then(res => res.json())
+      .then(data => { if (Array.isArray(data)) setAlerts(data); })
       .catch(console.error);
   }, [isAuth, username]);
 
@@ -200,6 +209,8 @@ function App() {
        .then(res => res.json())
        .then(data => {
           setCampaignData(data);
+          setEditedCoverstar(data.coverstar || '');
+          setEditedInstagram(data.instagram || '');
        })
        .catch(console.error)
        .finally(() => setIsGeneratingCampaign(false));
@@ -649,11 +660,20 @@ function App() {
                  </div>
 
                  <div className="card">
-                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Sourcing Alerts</h3>
-                    <div style={{ background: 'hsla(var(--accent-warning), 0.1)', border: '1px solid hsla(var(--accent-warning), 0.3)', padding: '1rem', borderRadius: 'var(--radius-md)', color: 'hsl(var(--text-secondary))', fontSize: '0.875rem' }}>
-                      <div style={{ color: 'hsl(var(--text-primary))', fontWeight: 600, marginBottom: '0.25rem' }}>Stock Depletion Risk</div>
-                      "{viralSpikes[0]?.entity_name || 'MojiMonsters'}" wholesale availability dropped 40% in last 24h across tracked suppliers. Action recommended.
-                      <button className="btn btn-primary" style={{ marginTop: '0.75rem', width: '100%' }} onClick={() => setActiveTab('buying')}>View Sourcing Options</button>
+                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Sourcing Alerts {alerts.length > 0 && <span style={{ color: 'hsl(var(--destructive))', fontSize: '0.85rem', marginLeft: '0.5rem' }}>• LIVE</span>}</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                       {alerts.length === 0 ? (
+                          <div style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.875rem' }}>No active depletion warnings.</div>
+                       ) : (
+                          alerts.slice(0, 3).map(alert => (
+                             <div key={alert.id} style={{ background: 'hsla(var(--accent-warning), 0.1)', border: '1px solid hsla(var(--accent-warning), 0.3)', padding: '1rem', borderRadius: 'var(--radius-md)', color: 'hsl(var(--text-secondary))', fontSize: '0.875rem', animation: 'bounce 0.5s ease' }}>
+                               <div style={{ color: 'hsl(var(--text-primary))', fontWeight: 600, marginBottom: '0.25rem' }}>{alert.title}</div>
+                               <p style={{ margin: '0.25rem 0 0.75rem 0' }}>{alert.message}</p>
+                               <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => { setDeepDiveData(opportunities.find(o => o.id === alert.opportunityId)); setActiveTab('trends'); }}>Execute Buy Strategy</button>
+                             </div>
+                          ))
+                       )}
+                       <style>{`@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }`}</style>
                     </div>
                  </div>
               </div>
@@ -910,8 +930,15 @@ function App() {
                <p style={{ color: '#fff', lineHeight: 1.6, fontSize: '1rem', padding: '1rem', background: '#222', borderRadius: '8px' }}>
                  <strong>Product Intel:</strong> {deepDiveData.description}
                </p>
-               
-               {deepDiveData.imageUrl && (
+               {deepDiveData.imageUrls && deepDiveData.imageUrls.length > 0 ? (
+                 <div style={{ marginTop: '1.5rem', width: '100%', display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.75rem', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+                    {deepDiveData.imageUrls.map((imgUrl: string, idx: number) => (
+                       <div key={idx} style={{ flex: '0 0 auto', width: '300px', height: '300px', overflow: 'hidden', borderRadius: '12px', border: '1px solid hsl(var(--border-light))', scrollSnapAlign: 'start', background: '#000' }}>
+                          <img src={imgUrl} alt={`${deepDiveData.name} - Angle ${idx+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                       </div>
+                    ))}
+                 </div>
+               ) : deepDiveData.imageUrl && (
                  <div style={{ marginTop: '1.5rem', width: '100%', height: '300px', overflow: 'hidden', borderRadius: '12px', border: '1px solid hsl(var(--border-light))' }}>
                     <img src={deepDiveData.imageUrl} alt={deepDiveData.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                  </div>
@@ -936,7 +963,38 @@ function App() {
                </div>
              </div>
 
-             {deepDiveData.bestSource && (
+             {deepDiveData.all_sources && deepDiveData.all_sources.length > 0 ? (
+                <div style={{ marginTop: '2.5rem', marginBottom: '2.5rem', borderTop: '1px solid hsl(var(--border-light))', paddingTop: '2rem' }}>
+                   <h3 style={{ fontSize: '1.4rem', color: '#fff', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🛒 Available Retail Catalog</h3>
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                      {deepDiveData.all_sources.map((source: any, sIdx: number) => (
+                         <div key={sIdx} style={{ padding: '1.5rem', background: source.recommended ? 'hsla(var(--accent-success), 0.1)' : 'rgba(0,0,0,0.2)', border: source.recommended ? '1px solid hsla(var(--accent-success), 0.3)' : '1px solid #30363d', borderRadius: 'var(--radius-md)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                               <div>
+                                  <h4 style={{ color: source.recommended ? 'hsl(var(--accent-success))' : '#58a6ff', fontSize: '1.2rem', marginBottom: '0.25rem' }}>{source.vendorName}</h4>
+                                  <a href={source.url} target="_blank" rel="noreferrer" style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.85rem', textDecoration: 'none' }}>{source.url}</a>
+                               </div>
+                               <div style={{ textAlign: 'right' }}>
+                                  <strong style={{ fontSize: '1.2rem' }}>${source.pricePerUnit?.toFixed(2) || 'N/A'}</strong>
+                                  <div style={{ fontSize: '0.8rem', color: 'hsl(var(--text-secondary))', marginTop: '0.25rem' }}>Margin: {source.marginEstimatePct}%</div>
+                               </div>
+                            </div>
+                            <p style={{ fontSize: '0.9rem', color: '#c9d1d9', marginBottom: '1rem', lineHeight: 1.5 }}>{source.shippingNotes || source.recommendationReason}</p>
+                            
+                            {source.imageUrls && source.imageUrls.length > 0 && (
+                               <div style={{ width: '100%', display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+                                  {source.imageUrls.map((imgUrl: string, idx: number) => (
+                                     <div key={idx} style={{ flex: '0 0 auto', width: '220px', height: '220px', overflow: 'hidden', borderRadius: '8px', border: '1px solid hsl(var(--border-light))', scrollSnapAlign: 'start', background: '#000' }}>
+                                        <img src={imgUrl} alt={`${source.vendorName} - Angle ${idx+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                     </div>
+                                  ))}
+                               </div>
+                            )}
+                         </div>
+                      ))}
+                   </div>
+                </div>
+             ) : deepDiveData.bestSource && (
                <div style={{ padding: '1.5rem', background: 'hsla(var(--accent-success), 0.1)', border: '1px solid hsla(var(--accent-success), 0.3)', borderRadius: 'var(--radius-md)', marginBottom: '2.5rem' }}>
                   <h3 style={{ color: 'hsl(var(--accent-success))', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🛒 Verified Stock Availability</h3>
                   <p style={{ fontSize: '0.95rem', color: 'hsl(var(--text-secondary))', marginBottom: '1rem', lineHeight: 1.5 }}>{deepDiveData.bestSource.reason}</p>
@@ -947,7 +1005,7 @@ function App() {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                       <span style={{ fontSize: '0.85rem', color: 'hsl(var(--text-secondary))' }}>Local Stock Status</span>
-                      <strong style={{ fontSize: '1.2rem', color: 'hsl(var(--accent-success))' }}>{deepDiveData.all_sources?.length ? 'Verifiable' : 'Low Inventory'}</strong>
+                      <strong style={{ fontSize: '1.2rem', color: 'hsl(var(--accent-success))' }}>Low Inventory</strong>
                     </div>
                   </div>
                </div>
@@ -963,12 +1021,37 @@ function App() {
              {campaignData && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
                    <div className="card glass-panel" style={{ padding: '1.5rem', background: 'rgba(255,105,180,0.05)', border: '1px solid rgba(255,105,180,0.2)' }}>
-                      <h4 style={{ color: '#ff69b4', marginBottom: '1rem' }}>💃 Coverstar Concept</h4>
-                      <p style={{ whiteSpace: 'pre-wrap', fontSize: '0.9rem', lineHeight: '1.5' }}>{campaignData.coverstar}</p>
+                      <h4 style={{ color: '#ff69b4', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>💃 Coverstar Concept</span>
+                        <button className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderRadius: '20px', background: '#ff69b4', color: '#fff', border: 'none', fontWeight: 'bold' }} onClick={() => { navigator.clipboard.writeText(editedCoverstar); window.open('https://coverstar.app', '_blank'); }}>Export to Coverstar</button>
+                      </h4>
+                      <textarea value={editedCoverstar} onChange={(e) => setEditedCoverstar(e.target.value)} style={{ width: '100%', height: '180px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,105,180,0.3)', color: '#c9d1d9', padding: '1rem', borderRadius: '8px', fontSize: '0.9rem', lineHeight: '1.5', resize: 'vertical' }} />
                    </div>
                    <div className="card glass-panel" style={{ padding: '1.5rem', background: 'rgba(225,48,108,0.05)', border: '1px solid rgba(225,48,108,0.2)' }}>
-                      <h4 style={{ color: '#e1306c', marginBottom: '1rem' }}>📸 Instagram Giveaway</h4>
-                      <p style={{ whiteSpace: 'pre-wrap', fontSize: '0.9rem', lineHeight: '1.5' }}>{campaignData.instagram}</p>
+                      <h4 style={{ color: '#e1306c', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>📸 Instagram Giveaway</span>
+                        <button className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderRadius: '20px', background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', color: '#fff', border: 'none', fontWeight: 'bold' }} onClick={() => { navigator.clipboard.writeText(editedInstagram); window.open('https://www.instagram.com/', '_blank'); }}>Export to Instagram</button>
+                      </h4>
+                      <textarea value={editedInstagram} onChange={(e) => setEditedInstagram(e.target.value)} style={{ width: '100%', height: '180px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(225,48,108,0.3)', color: '#c9d1d9', padding: '1rem', borderRadius: '8px', fontSize: '0.9rem', lineHeight: '1.5', resize: 'vertical' }} />
+                   </div>
+
+                   <div className="card glass-panel" style={{ gridColumn: '1 / -1', padding: '1.5rem', background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.2)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: localMediaUrl ? '1.5rem' : '0' }}>
+                        <h4 style={{ color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>🎬 Local Media Integration</h4>
+                        <label className="btn btn-outline" style={{ cursor: 'pointer', padding: '0.5rem 1.5rem', borderRadius: '20px', border: '1px solid #58a6ff', color: '#58a6ff', fontWeight: 600 }}>
+                           + Upload Local Camera Footage
+                           <input type="file" accept="video/*,image/*" style={{ display: 'none' }} onChange={(e) => { if(e.target.files?.[0]) setLocalMediaUrl(URL.createObjectURL(e.target.files[0])); }} />
+                        </label>
+                      </div>
+                      
+                      {localMediaUrl && (
+                        <>
+                         <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid #30363d', background: '#0d1117', maxHeight: '400px', display: 'flex', justifyContent: 'center' }}>
+                            <video src={localMediaUrl} controls autoPlay muted loop style={{ height: '400px', width: '100%', objectFit: 'contain' }} />
+                         </div>
+                         <p style={{ fontSize: '0.85rem', color: '#8b949e', marginTop: '1rem', textAlign: 'center' }}>Previewing physically staged media block. Standard payload restrictions intentionally bypassed for Deep Linking.</p>
+                        </>
+                      )}
                    </div>
                 </div>
              )}

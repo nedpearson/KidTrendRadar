@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS trends_signals (
   source_url TEXT,
   product_url TEXT,
   image_url TEXT,
+  image_urls TEXT,
   currency TEXT(3),
   observed_price REAL,
   availability_signal TEXT CHECK(availability_signal IN ('in_stock', 'out_of_stock', 'preorder', 'limited')),

@@ -89,6 +89,7 @@ export class TrendScoringEngine {
         category: signals[0].category || "Misc",
         description: signals[0].description || `Trending Kid's item identified via ${signals[0].source_name}`,
         imageUrl: signals[0].image_url || `https://picsum.photos/seed/${encodeURIComponent(entityName.replace(/ /g, ''))}/800/400`,
+        imageUrls: signals[0].imageUrls || (signals[0].image_url ? [signals[0].image_url] : [`https://picsum.photos/seed/${encodeURIComponent(entityName.replace(/ /g, ''))}/800/400`]),
         compositeScore: Number(compositeScore.toFixed(1)),
         subScores: {
           popularity: Number(popularity.toFixed(1)),

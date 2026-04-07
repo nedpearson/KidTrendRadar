@@ -18,6 +18,7 @@ export const TrendSignalSchema = z.object({
   sourceUrl: z.string().url().optional(),
   productUrl: z.string().url().optional(),
   imageUrl: z.string().url().optional(),
+  imageUrls: z.array(z.string().url()).optional(),
   currency: z.string().length(3).optional(),
   observedPrice: z.number().nonnegative().optional(),
   availabilitySignal: z.enum(["in_stock", "out_of_stock", "preorder", "limited"]).optional(),
@@ -34,6 +35,8 @@ export const ProductOpportunitySchema = z.object({
   brand: z.string(),
   category: z.string(),
   description: z.string(),
+  imageUrl: z.string().url().optional(),
+  imageUrls: z.array(z.string().url()).optional(),
   compositeScore: z.number().min(0).max(100),
   subScores: z.object({
     popularity: z.number(),
