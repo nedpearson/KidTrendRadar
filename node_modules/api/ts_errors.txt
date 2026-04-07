@@ -1,0 +1,4 @@
+src/ingestion/connectors/webScraper.ts(79,34): error TS2339: Property 'function' does not exist on type 'ChatCompletionMessageToolCall'.
+  Property 'function' does not exist on type 'ChatCompletionMessageCustomToolCall'.
+src/ingestion/connectors/webScraper.ts(80,46): error TS2339: Property 'function' does not exist on type 'ChatCompletionMessageToolCall'.
+  Property 'function' does not exist on type 'ChatCompletionMessageCustomToolCall'.

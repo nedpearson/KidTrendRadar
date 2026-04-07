@@ -1,0 +1,19 @@
+{
+  "name": "kidtrend-radar",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start:prod": "npm run build --workspaces --if-present && start cmd /k \"npm run dev -w api\" && start cmd /k \"npm run dev -w desktop\"",
+    "start:dev": "start cmd /k \"npm run dev -w api\" && start cmd /k \"npm run dev -w desktop\"",
+    "dev:desktop": "npm run dev -w desktop",
+    "dev:mobile": "npm run start -w mobile",
+    "dev:mobile-web": "npm run web -w mobile",
+    "dev:api": "npm run dev -w api",
+    "build:shared": "npm run build -w @kidtrend-radar/shared",
+    "install:all": "npm install"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
