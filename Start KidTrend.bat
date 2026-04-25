@@ -12,7 +12,7 @@ timeout /t 3 /nobreak >nul
 start "KidTrend Desktop" cmd /c "npm run dev:desktop"
 timeout /t 3 /nobreak >nul
 
-start "KidTrend Mobile" cmd /c "cd apps\mobile && npx expo start"
+start "KidTrend Mobile" cmd /c "cd apps\mobile && npx expo start -c --tunnel"
 
 :: Open browser
 start http://localhost:5173
